@@ -1,32 +1,37 @@
 import pygame as pg
 import os
-pg.init()
+#from logic import *
+
 
 def load_img(img, size):
-    img = pg.image.load(os.path.join('data', img))
+    img = pg.image.load(os.path.join('data', img)).convert_alpha()
     return pg.transform.scale(img, size)
-# groups
+
+pg.init()
+
 up_bord = pg.sprite.Group()
 down_bord = pg.sprite.Group()
 vert_bord = pg.sprite.Group()
-all_sprites = pg.sprite.Group()
 items = pg.sprite.Group()
 bullets = pg.sprite.Group()
 anim_sprites = pg.sprite.Group()
 enemies = pg.sprite.Group()
 
 # constants
-width, height = 1920, 1080
+width, height = 1280, 720
 tile = 40
 pers_size = 40, 60
 g = 0.5
-max_v = 10
+max_v = 7
 v_bul = 15
 v_dis = 10
-jump_pwr = 15
+jump_pwr = 12
 maxhp = 5
 
-img = { # images dict
+sc = pg.display.set_mode((width, height))
+
+img = {  # images dict
+
     'gnd': load_img('ground.png', (tile, tile)),
     'platf': load_img('platf.png', (tile, tile)),
     'bg': load_img('background.jpg', (width, height)),
@@ -45,6 +50,7 @@ img = { # images dict
 }
 platf_w = tile // 2
 
-with open('data\map.txt') as maptxt: # map reading
+with open('data\map.txt') as maptxt:  # map reading
     map = [i.rstrip() for i in maptxt.readlines()]
 map_w, map_h = len(map[0]), len(map)
+world_w, world_h = map_w * tile, map_h * tile

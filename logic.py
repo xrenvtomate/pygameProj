@@ -11,8 +11,7 @@ def direction(x1, x2):
     return 0
 
 
-
-def spawnkd(score):
+def spawnkd(score): #
     if score < 50:
         return 1800
     if score < 100:
@@ -21,7 +20,11 @@ def spawnkd(score):
         return 1000
     if score < 400:
         return 700
-    return 400
+    if score < 1000:
+        return 400
+    return 300
+
+
 def drawinterface(sc, player):
     # weapon bar
     for i, weapon in enumerate(player.weapons):
@@ -29,16 +32,14 @@ def drawinterface(sc, player):
         sc.blit(pg.transform.scale(img[weapon], (100, 100)), (i * 100, 0))
         pg.draw.rect(sc, (100, 255, 100), (i * 100, 0, 100, 100), 8, 10)
 
-    # chosen weapon
-    if player.chosen_weapon:
-        sc.blit(img[player.chosen_weapon], (player.rect.x + 10, player.rect.y - 40))
-    # hp
-    pg.draw.rect(sc, (255 * (1 - player.hp / maxhp), 255 * player.hp / maxhp, 0), (10, 100, 200 * player.hp / maxhp, 60), 0, 30)
+    # player hp
+    pg.draw.rect(sc, (255 * (1 - player.hp / maxhp), 255 * player.hp / maxhp, 0),
+                 (10, 100, 200 * player.hp / maxhp, 60), 0, 30)
     pg.draw.rect(sc, (0, 0, 0), (10, 100, 200, 60), 6, 30)
-    
 
 
-def drawmap(sc):
+def drawmap():
+    sc = pg.surface.Surface((map_w * tile, map_h * tile), pg.SRCALPHA)
     for y in range(map_h - 1, -1, -1):
         for x in range(map_w):
             kordx, kordy = x * tile, height - (map_h - y) * tile
@@ -126,9 +127,10 @@ class Player(pg.sprite.Sprite):
 
     def update(self):
         self.moving()
-        self.max_v = max_v * (1 + self.morgens / 5)
-        self.v_bul = v_bul * (1 + self.morgens / 5)
-        self.v_dis = v_dis * (1 + self.morgens / 5)
+        self.rect.centerx = max(min(world_w, self.rect.centerx), 0)
+        self.max_v = max_v * min(2, 1 + self.morgens / 5)
+        self.v_bul = v_bul * min(2, 1 + self.morgens / 5)
+        self.v_dis = v_dis * min(2, 1 + self.morgens / 5)
         for item in pg.sprite.spritecollide(self, items, True):
             if item.type == 'weapon':
                 if item.name not in self.weapons:
@@ -191,9 +193,15 @@ class Item(pg.sprite.Sprite):
         self.vy = 0
         self.on_gnd = False
 
-    def fall(self):
-        self.vy += g / 2
-        self.rect.y += self.vy
+    def update(self):
+
+        if not pg.sprite.spritecollideany(self, up_bord):
+            if not self.on_gnd:
+                self.vy += g / 2
+                self.rect.y += self.vy
+            else:
+                self.on_gnd = True
+                self.rect.y -= self.vy
 
 
 class Bullet(pg.sprite.Sprite):
@@ -205,7 +213,9 @@ class Bullet(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = pos
 
-    def move(self):
+    def update(self):
+        if (not -200 < self.rect.x < world_w + 200) or (not -200 < self.rect.y < height + 200):
+                self.kill()
         self.rect.x += self.dx
         self.rect.y += self.dy
 
@@ -218,9 +228,9 @@ class Anim_sprite(pg.sprite.Sprite):
         self.num_fr = num_frames
         for i in range(num_frames):
             self.frames.append(load_img(f'{img_name}{i}.png', (size)))
-        self.update()
+        self.anim()
 
-    def update(self):
+    def anim(self):
         self.image = self.frames[self.cur_fr]
         self.cur_fr = (self.cur_fr + 1) % self.num_fr
 
@@ -306,3 +316,27 @@ class Uutn(Obed):
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = posx, -100
         self.hp = self.mhp = 1
+
+
+class CameraGroup(pg.sprite.Group):
+    def __init__(self):
+        super().__init__()
+
+    def get_offset(self, target, pos0):
+        self.dy = 0
+        self.dx = max(target.rect.centerx - width // 2, 0)# + width // 2)
+        self.dx = min(self.dx, world_w - width)
+
+    def draw_sprites(self, player, sc, pos0, fon):
+        self.get_offset(player, pos0)
+        sc.blit(fon, (-self.dx, self.dy))
+
+        # sprites
+        for sprite in self.sprites():
+            sc.blit(sprite.image, (sprite.rect.x - self.dx, sprite.rect.y - self.dy))
+
+        # chosen weapon
+        if player.chosen_weapon:
+            sc.blit(img[player.chosen_weapon], (player.rect.x + 10 - self.dx , player.rect.y - 40))
+
+all_sprites = CameraGroup()
