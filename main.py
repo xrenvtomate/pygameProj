@@ -102,7 +102,7 @@ if __name__ == '__main__':
                 score += enem.shoted(1)
 
         if pg.sprite.spritecollideany(player, enemies) and not unkill: # damage from enemies
-            player.hp -= 0
+            player.hp -= 1
             if player.hp == 0:
                 running = False
             unkill = True
